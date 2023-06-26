@@ -8,17 +8,17 @@ One such limitation is that a GNN trained with the :class:`~torch_geometric.load
 
 *Hierarchical Neighborhood Sampling* or *Hierarchical Graph Adjacency Matrix (HGAM)* is a technique available in :pyg:`PyG` to eliminate this overhead and speeds up training and inference in mini-batch GNNs.
 Its main idea is to progressively trim the adjacency matrix of the returned subgraph before inputting it to each GNN layer.
-It works seamlessly across several models, basically reducing the amount of compute necessary to generate the representations for the seed node of the given mini-batch.
+It works seamlessly across several models, reducing the amount of compute necessary to generate the representations for the seed nodes of a given mini-batch.
 
 Crucially, HGAM recognizes that the computation of the final node representations is only necessary for the seed nodes (which are the real target of the batch computation).
-Thus, HGAM allows for every layer of the GNN to compute only the representations of the nodes that are necessary for that layer, leading to a reduction of the computation and a speed up of the training process that grows with the depth of the GNN being considered.
+Thus, HGAM allows for every layer of the GNN to compute only the representations of the nodes that are necessary for that layer (and subsequent layers), leading to a reduction of the computation and a speed up of the training process that grows with the depth of the GNN being considered.
 In practice, this is achieved by **trimming the adjacency matrix** and the various **features matrices** as the computation proceeds throughout the GNN layers.
 This is in line with the fact that in order to compute the representation for the seed/target nodes (from which the mini-batch was build via sampling methods), the depth of the relevant neighborhood shrinks as we proceed through the layers of the GNN.
 The trimming applied by HGAM is possible as the nodes of the subgraph built via sampling are ordered according to a *Breadth First Search (BFS)* strategy, meaning that the rows and columns of the adjacency matrix refer to a node ordering that starts with the seed nodes (in any order) followed by the 1-hop neighbors of the first seed node, followed by the 1-hop sampled neighbors of the second seed node and so on.
 The BFS ordering of nodes in a mini-batch allows for incremental trimming (reduction) of the adjacency matrix of the subgraph.
-This progressive trimming is done in a computational convenient manner thanks to the BFS ordering that causes the nodes more distant from the seed nodes to be appear farther away in the list of ordered nodes.
+This progressive trimming is done in a computationally advantageous manner thanks to the BFS ordering that causes the nodes more distant from the seed nodes to be appear farther away in the list of ordered nodes.
 
-To support this trimming and implement it effectively, the :class:`~torch_geometric.loader.NeighborLoader` implementation in :pyg:`PyG` and in :pyg:`pyg-lib` additionally return the number of nodes and edges sampled in hop.
+To support this trimming and implement it effectively, the :class:`~torch_geometric.loader.NeighborLoader` implementation in :pyg:`PyG` and in :pyg:`pyg-lib` additionally returns the number of nodes and edges sampled in each hop.
 This information allows for fast manipulation of the adjacency matrix, which in turns lead to great computation reduction.
 The :class:`~torch_geometric.loader.NeighborLoader` prepares this metadata via the dedicated attributes :obj:`num_sampled_nodes` and :obj:`num_sampled_edges`.
 It can be accessed from the :class:`~torch_geometric.data.Batch` object returned for both homogeneous and heterogeneous graphs.
